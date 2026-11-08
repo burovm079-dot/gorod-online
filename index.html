@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<title>ГОРОД ONLINE — Воронеж</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#101d30;--panel2:#14243a;--line:#243650;--muted:#91a4bc;--text:#eef5ff;--accent:#63d7c5;--blue:#78aaff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#16314a 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1440px;margin:auto;padding:22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#63d7c5,#4689da);display:grid;place-items:center;color:#06131d;font-weight:900;font-size:22px;box-shadow:0 8px 28px #42c8b533}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.16em;font-weight:800}.brand h1{font-size:22px;line-height:1.15;margin:2px 0}.sub{color:var(--muted);font-size:13px}.livepill{border:1px solid #285c58;background:#10332f;color:#8ff0d9;padding:7px 12px;border-radius:99px;font-size:12px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(290px,.8fr);gap:16px}.panel{background:linear-gradient(160deg,#122239ee,#0e1a2bee);border:1px solid var(--line);border-radius:19px;overflow:hidden;box-shadow:0 14px 40px #0003}.panelhead{padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}.panelhead h2{margin:0;font-size:16px}.panelhead small{color:var(--muted)}#map{height:590px;width:100%;background:#182b3c}.mapnote{padding:10px 15px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.side{display:grid;gap:16px;align-content:start}.weather{padding:18px}.weather-top{display:flex;justify-content:space-between;align-items:center}.temp{font-size:50px;font-weight:750;letter-spacing:-3px;margin:8px 0 0}.weather-desc{color:var(--muted)}.weather-icon{font-size:38px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:17px}.stat{background:#0a1728;border:1px solid #1f344d;border-radius:12px;padding:11px}.stat span{display:block;color:var(--muted);font-size:11px}.stat b{font-size:16px}.updated{color:var(--muted);font-size:11px;margin-top:13px}
+.links{padding:17px}.linkrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.linkrow:last-child{border:0}.linkrow b{display:block;font-size:14px}.linkrow small{color:var(--muted);font-size:12px}.arrow{color:var(--accent);font-size:19px}
+.searchbar{display:flex;gap:8px;width:min(430px,55%)}input{min-width:0;flex:1;background:#091729;color:var(--text);border:1px solid #304660;border-radius:10px;padding:9px 11px;font:inherit;outline:none}input:focus{border-color:var(--accent)}button{border:0;border-radius:10px;background:var(--accent);color:#06201d;padding:9px 13px;font-weight:750;cursor:pointer}button.secondary{background:#1a3049;color:var(--text);border:1px solid #35506b}.maptools{display:flex;gap:7px;flex-wrap:wrap;padding:12px 15px;border-bottom:1px solid var(--line)}
+.status{display:flex;gap:10px;align-items:flex-start;padding:14px 16px}.dot{width:9px;height:9px;border-radius:50%;background:#d7a95b;margin-top:6px;flex:none}.status p{margin:0;font-size:13px}.status small{display:block;color:var(--muted);margin-top:3px}
+footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.leaflet-control-attribution{font-size:10px!important}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#10233a;color:#eef5ff}.leaflet-popup-content a{color:#63d7c5}
+@media(max-width:850px){.grid{grid-template-columns:1fr}#map{height:56vh;min-height:380px}.wrap{padding:14px}.brand h1{font-size:19px}.searchbar{width:100%}.panelhead{align-items:flex-start;flex-direction:column}.maptools{flex-wrap:wrap}}
+@media(max-width:420px){header{align-items:flex-start}.livepill{font-size:10px;padding:6px 8px}.temp{font-size:43px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="brand"><div class="logo">В</div><div><div class="eyebrow">ГОРОДСКАЯ ПЛАТФОРМА</div><h1>ГОРОД ONLINE</h1><div class="sub">Воронеж · всё важное на одной карте</div></div></div><div class="livepill">● ДАННЫЕ ОБНОВЛЯЮТСЯ</div></header>
+<main class="grid">
+<section class="panel">
+<div class="panelhead"><div><h2>Карта Воронежа</h2><small>Город и ближайшие районы</small></div><div class="searchbar"><input id="search" placeholder="Найти улицу или место…" aria-label="Поиск по Воронежу"><button id="searchBtn">Найти</button></div></div>
+<div class="maptools"><button class="secondary" id="centerBtn">⌖ К центру</button><button class="secondary" id="zoomIn">＋</button><button class="secondary" id="zoomOut">−</button></div>
+<div id="map" role="application" aria-label="Интерактивная карта Воронежа"></div>
+<div class="mapnote">Карта © OpenStreetMap contributors. Поиск ограничен территорией Воронежа.</div>
+</section>
+<aside class="side">
+<section class="panel weather">
+<div class="weather-top"><div><div class="eyebrow">ПОГОДА СЕЙЧАС</div><div class="temp" id="temp">—°</div><div class="weather-desc" id="weatherDesc">Загружаем прогноз…</div></div><div class="weather-icon" id="weatherIcon">🌤️</div></div>
+<div class="stats"><div class="stat"><span>ОЩУЩАЕТСЯ</span><b id="feels">—</b></div><div class="stat"><span>ВЕТЕР</span><b id="wind">—</b></div><div class="stat"><span>ВЛАЖНОСТЬ</span><b id="humidity">—</b></div><div class="stat"><span>ОСАДКИ</span><b id="rain">—</b></div></div>
+<div class="updated" id="weatherUpdated">Источник: Open-Meteo · обновление при загрузке и каждые 15 минут</div>
+</section>
+<section class="panel links">
+<div class="eyebrow">ГОРОДСКИЕ СЕРВИСЫ</div>
+<div class="linkrow"><div><b>🚌 Общественный транспорт</b><small>Онлайн-карта перевозчика</small></div><a class="arrow" href="https://eogpp-vrn.ru/" target="_blank" rel="noopener" aria-label="Открыть транспорт">↗</a></div>
+<div class="linkrow"><div><b>🌐 Карта и места</b><small>Поиск объектов на карте</small></div><a class="arrow" href="https://www.openstreetmap.org/#map=12/51.6755/39.2089" target="_blank" rel="noopener" aria-label="Открыть OpenStreetMap">↗</a></div>
+<div class="linkrow"><div><b>🌦️ Подробный прогноз</b><small>Погода по Воронежу</small></div><a class="arrow" href="https://open-meteo.com/" target="_blank" rel="noopener" aria-label="Открыть Open-Meteo">↗</a></div>
+</section>
+<section class="panel"><div class="status"><span class="dot"></span><p><b>Дорожная обстановка</b><small>Пока нет подключённого проверенного открытого источника пробок. Статус не является оценкой дорожной ситуации.</small></p></div><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Транспорт</b><small>Открывается официальный сервис оператора. Движение на нашей карте пока не отображается: открытый интерфейс данных ещё не подключён.</small></p></div></section>
+</aside>
+</main>
+<footer><span>ГОРОД ONLINE · только Воронеж</span><span>Информационный проект. Данные внешних сервисов могут задерживаться или быть недоступны.</span></footer>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const center=[51.6755,39.2089], bounds=L.latLngBounds([[51.48,38.98],[51.86,39.48]]);
+const map=L.map('map',{zoomControl:true,minZoom:10,maxZoom:18,maxBounds:bounds,maxBoundsViscosity:.85}).setView(center,12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+L.marker(center).addTo(map).bindPopup('<b>Воронеж</b><br>Центр города');
+document.getElementById('centerBtn').onclick=()=>map.setView(center,12);
+document.getElementById('zoomIn').onclick=()=>map.zoomIn();
+document.getElementById('zoomOut').onclick=()=>map.zoomOut();
+async function findPlace(){const q=document.getElementById('search').value.trim();if(!q)return;const btn=document.getElementById('searchBtn');btn.disabled=true;btn.textContent='…';try{const u='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&bounded=1&viewbox=38.98,51.86,39.48,51.48&q='+encodeURIComponent(q+', Воронеж');const r=await fetch(u,{headers:{'Accept-Language':'ru'}});const d=await r.json();if(!d.length){alert('В Воронеже ничего не найдено. Попробуйте другой запрос.');return}const p=[+d[0].lat,+d[0].lon];if(!bounds.contains(p)){alert('Результат находится за пределами карты Воронежа.');return}map.setView(p,16);L.marker(p).addTo(map).bindPopup('<b>'+escapeHtml(d[0].name||q)+'</b><br><small>'+escapeHtml(d[0].display_name||'')+'</small>').openPopup()}catch(e){alert('Поиск временно недоступен. Попробуйте позже.')}finally{btn.disabled=false;btn.textContent='Найти'}}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+document.getElementById('searchBtn').onclick=findPlace;document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')findPlace()});
+const weatherText={0:['Ясно','☀️'],1:['Преимущественно ясно','🌤️'],2:['Переменная облачность','⛅'],3:['Пасмурно','☁️'],45:['Туман','🌫️'],48:['Изморозь и туман','🌫️'],51:['Слабая морось','🌦️'],53:['Морось','🌦️'],55:['Сильная морось','🌧️'],61:['Небольшой дождь','🌦️'],63:['Дождь','🌧️'],65:['Сильный дождь','🌧️'],71:['Небольшой снег','🌨️'],73:['Снег','❄️'],75:['Сильный снег','❄️'],80:['Ливневый дождь','🌦️'],81:['Ливни','🌧️'],82:['Сильные ливни','⛈️'],95:['Гроза','⛈️'],96:['Гроза с градом','⛈️'],99:['Сильная гроза с градом','⛈️']};
+async function loadWeather(){try{const url='https://api.open-meteo.com/v1/forecast?latitude=51.6755&longitude=39.2089&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&timezone=Europe%2FMoscow';const r=await fetch(url);if(!r.ok)throw Error('weather');const j=await r.json(),c=j.current,desc=weatherText[c.weather_code]||['Переменная погода','🌤️'];document.getElementById('temp').textContent=Math.round(c.temperature_2m)+'°';document.getElementById('weatherDesc').textContent=desc[0];document.getElementById('weatherIcon').textContent=desc[1];document.getElementById('feels').textContent=Math.round(c.apparent_temperature)+'°';document.getElementById('wind').textContent=Math.round(c.wind_speed_10m)+' км/ч';document.getElementById('humidity').textContent=c.relative_humidity_2m+'%';document.getElementById('rain').textContent=c.precipitation+' мм';document.getElementById('weatherUpdated').textContent='Обновлено: '+new Date(c.time).toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short'})+' · Open-Meteo'}catch(e){document.getElementById('weatherDesc').textContent='Не удалось загрузить погоду';document.getElementById('weatherUpdated').textContent='Источник погоды временно недоступен.'}}
+loadWeather();setInterval(loadWeather,15*60*1000);
+</script>
+</body>
+</html>

@@ -21,6 +21,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;ma
 .forecast{padding:16px 18px}.forecast-list{display:grid;gap:9px;margin-top:12px}.forecast-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}.forecast-row:last-child{border:0}.forecast-day{font-weight:650}.forecast-desc,.forecast-rain{font-size:12px;color:var(--muted)}.forecast-temp{font-weight:750;white-space:nowrap}
 footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .leaflet-control-attribution{font-size:10px!important}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#10233a;color:#eef5ff}.leaflet-popup-content a{color:#63d7c5}
+.leaflet-popup-content{width:min(78vw,360px)!important;max-height:70vh;overflow:auto}.stop-board iframe{display:block;width:100%;height:340px;border:1px solid #35506b;border-radius:9px;background:#fff;margin:9px 0}.stop-board .board-note{font-size:11px;color:#91a4bc;margin:5px 0}.stop-board a{font-weight:700}
 @media(max-width:850px){.grid{grid-template-columns:1fr}#map{height:56vh;min-height:380px}.wrap{padding:14px}.brand h1{font-size:19px}.searchbar{width:100%}.panelhead{align-items:flex-start;flex-direction:column}.maptools{flex-wrap:wrap}}
 @media(max-width:420px){header{align-items:flex-start}.livepill{font-size:10px;padding:6px 8px}.temp{font-size:43px}}
 </style>
@@ -33,7 +34,7 @@ footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justi
 <div class="panelhead"><div><h2>Карта Воронежа</h2><small>Остановки и линии маршрутов города</small></div><div class="searchbar"><input id="search" placeholder="Найти улицу или место…" aria-label="Поиск по Воронежу"><button id="searchBtn">Найти</button></div></div>
 <div class="maptools"><button class="secondary" id="centerBtn">⌖ К центру</button><button class="secondary" id="zoomIn">＋</button><button class="secondary" id="zoomOut">−</button><button class="secondary" id="stopsToggle" aria-pressed="true">● Остановки: вкл.</button><button class="secondary" id="routesToggle" aria-pressed="true">━ Маршруты: вкл.</button></div>
 <div id="map" role="application" aria-label="Интерактивная карта Воронежа"></div>
-<div class="mapnote">Карта © OpenStreetMap contributors. Остановки и линии маршрутов загружаются из OSM; это не GPS-позиции автобусов.</div>
+<div class="mapnote">Карта © OpenStreetMap contributors. Остановки и линии маршрутов — OpenStreetMap. Нажмите на увеличенную остановку, чтобы открыть табло расписания.</div>
 </section>
 <aside class="side">
 <section class="panel weather">
@@ -48,7 +49,7 @@ footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justi
 <div class="linkrow"><div><b>🌐 Карта и места</b><small>Поиск объектов на карте</small></div><a class="arrow" href="https://www.openstreetmap.org/#map=12/51.6755/39.2089" target="_blank" rel="noopener" aria-label="Открыть OpenStreetMap">↗</a></div>
 <div class="linkrow"><div><b>🌦️ Подробный прогноз</b><small>Погода по Воронежу</small></div><a class="arrow" href="https://open-meteo.com/" target="_blank" rel="noopener" aria-label="Открыть Open-Meteo">↗</a></div>
 </section>
-<section class="panel"><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Остановки и маршруты</b><small id="transportStatus">Загружаем данные OpenStreetMap…</small></p></div><div class="status"><span class="dot"></span><p><b>Дорожная обстановка</b><small>Пока нет подключённого проверенного открытого источника пробок. Статус не является оценкой дорожной ситуации.</small></p></div><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Транспорт</b><small>Движущиеся автобусы появятся на этой карте после подключения официального GPS-потока или API перевозчика. Пока отображаются остановки и схемы маршрутов OpenStreetMap.</small></p></div></section>
+<section class="panel"><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Остановки и маршруты</b><small id="transportStatus">Загружаем остановки OSM и табло расписаний…</small></p></div><div class="status"><span class="dot"></span><p><b>Дорожная обстановка</b><small>Пока нет подключённого проверенного открытого источника пробок. Статус не является оценкой дорожной ситуации.</small></p></div><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Транспорт</b><small>Движущиеся автобусы появятся на этой карте после подключения официального GPS-потока или API перевозчика. Пока отображаются остановки и схемы маршрутов OpenStreetMap.</small></p></div></section>
 </aside>
 </main>
 <footer><span>ГОРОД ONLINE · только Воронеж</span><span>Информационный проект. Данные внешних сервисов могут задерживаться или быть недоступны.</span></footer>
@@ -62,6 +63,7 @@ L.marker(center).addTo(map).bindPopup('<b>Воронеж</b><br>Центр го�
 const stopsLayer=L.layerGroup().addTo(map),routesLayer=L.layerGroup().addTo(map);
 let stopsVisible=true,routesVisible=true,transportLoaded=false;
 const transportBounds='(51.48,38.98,51.86,39.48)';
+function stopSlug(value){const map={"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"c","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};return String(value).toLowerCase().split("").map(ch=>map[ch]??ch).join("").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")}
 function toggleTransportButton(id,on,label){const b=document.getElementById(id);b.setAttribute('aria-pressed',String(on));b.textContent=(on?'● ':'○ ')+label+': '+(on?'вкл.':'выкл.')}
 document.getElementById('stopsToggle').onclick=()=>{stopsVisible=!stopsVisible;if(stopsVisible){if(map.getZoom()>=11)stopsLayer.addTo(map)}else map.removeLayer(stopsLayer);toggleTransportButton('stopsToggle',stopsVisible,'Остановки')};
 document.getElementById('routesToggle').onclick=()=>{routesVisible=!routesVisible;if(routesVisible)routesLayer.addTo(map);else map.removeLayer(routesLayer);toggleTransportButton('routesToggle',routesVisible,'Маршруты')};
@@ -74,11 +76,11 @@ async function loadTransportLayers(){
  for(const endpoint of endpoints){try{const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(query)});if(!response.ok)throw new Error('Overpass '+response.status);data=await response.json();break}catch(err){lastError=err}}
  if(!data)throw lastError||new Error('OSM data unavailable');
  const seen=new Set();
- for(const el of data.elements||[]){if(el.type!=='node'||!Number.isFinite(el.lat)||!Number.isFinite(el.lon)||seen.has(el.id))continue;seen.add(el.id);const name=el.tags?.name||el.tags?.['name:ru']||'Остановка';const marker=L.circleMarker([el.lat,el.lon],{radius:4,weight:1,color:'#092b35',fillColor:'#63d7c5',fillOpacity:.95}).bindTooltip(name,{direction:'top'}).bindPopup('<b>'+escapeHtml(name)+'</b><br><small>Остановка по данным OpenStreetMap</small>');marker.addTo(stopsLayer)}
+ for(const el of data.elements||[]){if(el.type!=='node'||!Number.isFinite(el.lat)||!Number.isFinite(el.lon)||seen.has(el.id))continue;seen.add(el.id);const name=el.tags?.name||el.tags?.['name:ru']||'Остановка';const slug=stopSlug(name);const boardUrl='https://136i.ru/transport/marshruty/ostanovka/'+slug;const popup='<div class="stop-board"><b>🚏 '+escapeHtml(name)+'</b><div class="board-note">Табло маршрутов и расписание для этой остановки</div><iframe title="Расписание остановки '+escapeHtml(name)+'" src="'+boardUrl+'" loading="lazy" referrerpolicy="no-referrer"></iframe><a href="'+boardUrl+'" target="_blank" rel="noopener">Открыть полное табло ↗</a><div class="board-note">Расписание опубликовано городским оператором; фактическое прибытие может отличаться</div></div>';const marker=L.circleMarker([el.lat,el.lon],{radius:8,weight:2,color:'#092b35',fillColor:'#63d7c5',fillOpacity:1}).bindTooltip(name,{direction:'top'}).bindPopup(popup,{maxWidth:390,minWidth:290});marker.addTo(stopsLayer)}
  let routeCount=0;
  for(const rel of data.elements||[]){if(rel.type!=='relation')continue;const tags=rel.tags||{};let memberLines=0;for(const m of rel.members||[]){if(m.type!=='way'||!Array.isArray(m.geometry)||m.geometry.length<2)continue;const pts=m.geometry.map(p=>[p.lat,p.lon]);L.polyline(pts,{color:'#78aaff',weight:3,opacity:.78}).bindPopup('<b>Маршрут '+escapeHtml(tags.ref||tags.name||'без номера')+'</b><br><small>'+escapeHtml(tags.from||'')+(tags.to?' → '+escapeHtml(tags.to):'')+' · схема OpenStreetMap, не положение автобуса</small>').addTo(routesLayer);memberLines++}if(memberLines)routeCount++}
  transportLoaded=true;updateStopZoom();
- document.getElementById('transportStatus').textContent='Загружено: '+seen.size+' точек остановок и '+routeCount+' линий маршрутов из OpenStreetMap. Движущиеся автобусы пока не подключены.';
+ document.getElementById('transportStatus').textContent='Загружено: '+seen.size+' увеличенных остановок и '+routeCount+' линий маршрутов. Нажмите на остановку для табло расписания.';
 }
 
 document.getElementById('centerBtn').onclick=()=>map.setView(center,12);

@@ -30,10 +30,10 @@ footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justi
 <header><div class="brand"><div class="logo">В</div><div><div class="eyebrow">ГОРОДСКАЯ ПЛАТФОРМА</div><h1>ГОРОД ONLINE</h1><div class="sub">Воронеж · всё важное на одной карте</div></div></div><div class="livepill">● ДАННЫЕ ОБНОВЛЯЮТСЯ</div></header>
 <main class="grid">
 <section class="panel">
-<div class="panelhead"><div><h2>Карта Воронежа</h2><small>Город и ближайшие районы</small></div><div class="searchbar"><input id="search" placeholder="Найти улицу или место…" aria-label="Поиск по Воронежу"><button id="searchBtn">Найти</button></div></div>
-<div class="maptools"><button class="secondary" id="centerBtn">⌖ К центру</button><button class="secondary" id="zoomIn">＋</button><button class="secondary" id="zoomOut">−</button></div>
+<div class="panelhead"><div><h2>Карта Воронежа</h2><small>Остановки и линии маршрутов города</small></div><div class="searchbar"><input id="search" placeholder="Найти улицу или место…" aria-label="Поиск по Воронежу"><button id="searchBtn">Найти</button></div></div>
+<div class="maptools"><button class="secondary" id="centerBtn">⌖ К центру</button><button class="secondary" id="zoomIn">＋</button><button class="secondary" id="zoomOut">−</button><button class="secondary" id="stopsToggle" aria-pressed="true">● Остановки: вкл.</button><button class="secondary" id="routesToggle" aria-pressed="true">━ Маршруты: вкл.</button></div>
 <div id="map" role="application" aria-label="Интерактивная карта Воронежа"></div>
-<div class="mapnote">Карта © OpenStreetMap contributors. Поиск ограничен территорией Воронежа.</div>
+<div class="mapnote">Карта © OpenStreetMap contributors. Остановки и линии маршрутов загружаются из OSM; это не GPS-позиции автобусов.</div>
 </section>
 <aside class="side">
 <section class="panel weather">
@@ -48,7 +48,7 @@ footer{padding:22px 4px 8px;color:var(--muted);font-size:12px;display:flex;justi
 <div class="linkrow"><div><b>🌐 Карта и места</b><small>Поиск объектов на карте</small></div><a class="arrow" href="https://www.openstreetmap.org/#map=12/51.6755/39.2089" target="_blank" rel="noopener" aria-label="Открыть OpenStreetMap">↗</a></div>
 <div class="linkrow"><div><b>🌦️ Подробный прогноз</b><small>Погода по Воронежу</small></div><a class="arrow" href="https://open-meteo.com/" target="_blank" rel="noopener" aria-label="Открыть Open-Meteo">↗</a></div>
 </section>
-<section class="panel"><div class="status"><span class="dot"></span><p><b>Дорожная обстановка</b><small>Пока нет подключённого проверенного открытого источника пробок. Статус не является оценкой дорожной ситуации.</small></p></div><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Транспорт</b><small>Открывается официальный сервис оператора. Движение на нашей карте пока не отображается: открытый интерфейс данных ещё не подключён.</small></p></div></section>
+<section class="panel"><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Остановки и маршруты</b><small id="transportStatus">Загружаем данные OpenStreetMap…</small></p></div><div class="status"><span class="dot"></span><p><b>Дорожная обстановка</b><small>Пока нет подключённого проверенного открытого источника пробок. Статус не является оценкой дорожной ситуации.</small></p></div><div class="status"><span class="dot" style="background:#63d7c5"></span><p><b>Транспорт</b><small>Открывается официальный сервис оператора. Движение на нашей карте пока не отображается: открытый интерфейс данных ещё не подключён.</small></p></div></section>
 </aside>
 </main>
 <footer><span>ГОРОД ONLINE · только Воронеж</span><span>Информационный проект. Данные внешних сервисов могут задерживаться или быть недоступны.</span></footer>
@@ -59,6 +59,28 @@ const center=[51.6755,39.2089], bounds=L.latLngBounds([[51.48,38.98],[51.86,39.4
 const map=L.map('map',{zoomControl:true,minZoom:10,maxZoom:18,maxBounds:bounds,maxBoundsViscosity:.85}).setView(center,12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
 L.marker(center).addTo(map).bindPopup('<b>Воронеж</b><br>Центр города');
+const stopsLayer=L.layerGroup().addTo(map),routesLayer=L.layerGroup().addTo(map);
+let stopsVisible=true,routesVisible=true,transportLoaded=false;
+const transportBounds='(51.48,38.98,51.86,39.48)';
+function toggleTransportButton(id,on,label){const b=document.getElementById(id);b.setAttribute('aria-pressed',String(on));b.textContent=(on?'● ':'○ ')+label+': '+(on?'вкл.':'выкл.')}
+document.getElementById('stopsToggle').onclick=()=>{stopsVisible=!stopsVisible;if(stopsVisible){if(map.getZoom()>=11)stopsLayer.addTo(map)}else map.removeLayer(stopsLayer);toggleTransportButton('stopsToggle',stopsVisible,'Остановки')};
+document.getElementById('routesToggle').onclick=()=>{routesVisible=!routesVisible;if(routesVisible)routesLayer.addTo(map);else map.removeLayer(routesLayer);toggleTransportButton('routesToggle',routesVisible,'Маршруты')};
+function updateStopZoom(){if(stopsVisible&&map.getZoom()>=11){if(!map.hasLayer(stopsLayer))stopsLayer.addTo(map)}else if(map.hasLayer(stopsLayer))map.removeLayer(stopsLayer)}
+map.on('zoomend',updateStopZoom);
+async function loadTransportLayers(){
+ const query='[out:json][timeout:45];(node["highway"="bus_stop"]'+transportBounds+';node["public_transport"="platform"]'+transportBounds+';node["public_transport"="stop_position"]'+transportBounds+';);out body;relation["type"="route"]["route"~"^(bus|trolleybus|tram)$"]'+transportBounds+';out geom;';
+ const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+ let data=null,lastError=null;
+ for(const endpoint of endpoints){try{const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(query)});if(!response.ok)throw new Error('Overpass '+response.status);data=await response.json();break}catch(err){lastError=err}}
+ if(!data)throw lastError||new Error('OSM data unavailable');
+ const seen=new Set();
+ for(const el of data.elements||[]){if(el.type!=='node'||!Number.isFinite(el.lat)||!Number.isFinite(el.lon)||seen.has(el.id))continue;seen.add(el.id);const name=el.tags?.name||el.tags?.['name:ru']||'Остановка';const marker=L.circleMarker([el.lat,el.lon],{radius:4,weight:1,color:'#092b35',fillColor:'#63d7c5',fillOpacity:.95}).bindTooltip(name,{direction:'top'}).bindPopup('<b>'+escapeHtml(name)+'</b><br><small>Остановка по данным OpenStreetMap</small>');marker.addTo(stopsLayer)}
+ let routeCount=0;
+ for(const rel of data.elements||[]){if(rel.type!=='relation')continue;const tags=rel.tags||{};let memberLines=0;for(const m of rel.members||[]){if(m.type!=='way'||!Array.isArray(m.geometry)||m.geometry.length<2)continue;const pts=m.geometry.map(p=>[p.lat,p.lon]);L.polyline(pts,{color:'#78aaff',weight:3,opacity:.78}).bindPopup('<b>Маршрут '+escapeHtml(tags.ref||tags.name||'без номера')+'</b><br><small>'+escapeHtml(tags.from||'')+(tags.to?' → '+escapeHtml(tags.to):'')+' · схема OpenStreetMap, не положение автобуса</small>').addTo(routesLayer);memberLines++}if(memberLines)routeCount++}
+ transportLoaded=true;updateStopZoom();
+ document.getElementById('transportStatus').textContent='Загружено: '+seen.size+' точек остановок и '+routeCount+' линий маршрутов из OpenStreetMap. Движущиеся автобусы пока не подключены.';
+}
+
 document.getElementById('centerBtn').onclick=()=>map.setView(center,12);
 document.getElementById('zoomIn').onclick=()=>map.zoomIn();
 document.getElementById('zoomOut').onclick=()=>map.zoomOut();
@@ -67,7 +89,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 document.getElementById('searchBtn').onclick=findPlace;document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')findPlace()});
 const weatherText={0:['Ясно','☀️'],1:['Преимущественно ясно','🌤️'],2:['Переменная облачность','⛅'],3:['Пасмурно','☁️'],45:['Туман','🌫️'],48:['Изморозь и туман','🌫️'],51:['Слабая морось','🌦️'],53:['Морось','🌦️'],55:['Сильная морось','🌧️'],61:['Небольшой дождь','🌦️'],63:['Дождь','🌧️'],65:['Сильный дождь','🌧️'],71:['Небольшой снег','🌨️'],73:['Снег','❄️'],75:['Сильный снег','❄️'],80:['Ливневый дождь','🌦️'],81:['Ливни','🌧️'],82:['Сильные ливни','⛈️'],95:['Гроза','⛈️'],96:['Гроза с градом','⛈️'],99:['Сильная гроза с градом','⛈️']};
 async function loadWeather(){try{const url='https://api.open-meteo.com/v1/forecast?latitude=51.6755&longitude=39.2089&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=3&timezone=Europe%2FMoscow';const r=await fetch(url);if(!r.ok)throw Error('weather');const j=await r.json(),c=j.current,desc=weatherText[c.weather_code]||['Переменная погода','🌤️'];document.getElementById('temp').textContent=Math.round(c.temperature_2m)+'°';document.getElementById('weatherDesc').textContent=desc[0];document.getElementById('weatherIcon').textContent=desc[1];document.getElementById('feels').textContent=Math.round(c.apparent_temperature)+'°';document.getElementById('wind').textContent=Math.round(c.wind_speed_10m)+' км/ч';document.getElementById('humidity').textContent=c.relative_humidity_2m+'%';document.getElementById('rain').textContent=c.precipitation+' мм';document.getElementById('weatherUpdated').textContent='Обновлено: '+new Date(c.time).toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short'})+' · Open-Meteo';const d=j.daily,fmt=x=>new Date(x+'T12:00:00').toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});document.getElementById('forecastList').innerHTML=d.time.map((day,i)=>{const w=weatherText[d.weather_code[i]]||['Переменная погода','🌤️'];return '<div class="forecast-row"><div><div class="forecast-day">'+fmt(day)+'</div><div class="forecast-desc">'+w[1]+' '+w[0]+'</div></div><div class="forecast-temp">'+Math.round(d.temperature_2m_max[i])+'° / '+Math.round(d.temperature_2m_min[i])+'°</div><div class="forecast-rain">💧 '+(d.precipitation_probability_max[i]??'—')+'%</div></div>'}).join('')}catch(e){document.getElementById('weatherDesc').textContent='Не удалось загрузить погоду';document.getElementById('weatherUpdated').textContent='Источник погоды временно недоступен.'}}
-loadWeather();setInterval(loadWeather,15*60*1000);
+loadWeather();setInterval(loadWeather,15*60*1000);loadTransportLayers().catch(()=>{document.getElementById('transportStatus').textContent='Не удалось загрузить остановки и линии маршрутов. Попробуйте обновить страницу позже.'});
 </script>
 </body>
 </html>

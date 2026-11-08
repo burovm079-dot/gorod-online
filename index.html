@@ -65,9 +65,9 @@ let stopsVisible=true,routesVisible=true,transportLoaded=false;
 const transportBounds='(51.48,38.98,51.86,39.48)';
 function stopSlug(value){const map={"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"c","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};return String(value).toLowerCase().split("").map(ch=>map[ch]??ch).join("").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")}
 function toggleTransportButton(id,on,label){const b=document.getElementById(id);b.setAttribute('aria-pressed',String(on));b.textContent=(on?'● ':'○ ')+label+': '+(on?'вкл.':'выкл.')}
-document.getElementById('stopsToggle').onclick=()=>{stopsVisible=!stopsVisible;if(stopsVisible){if(map.getZoom()>=11)stopsLayer.addTo(map)}else map.removeLayer(stopsLayer);toggleTransportButton('stopsToggle',stopsVisible,'Остановки')};
+document.getElementById('stopsToggle').onclick=()=>{stopsVisible=!stopsVisible;if(stopsVisible){if(map.getZoom()>=10)stopsLayer.addTo(map)}else map.removeLayer(stopsLayer);toggleTransportButton('stopsToggle',stopsVisible,'Остановки')};
 document.getElementById('routesToggle').onclick=()=>{routesVisible=!routesVisible;if(routesVisible)routesLayer.addTo(map);else map.removeLayer(routesLayer);toggleTransportButton('routesToggle',routesVisible,'Маршруты')};
-function updateStopZoom(){if(stopsVisible&&map.getZoom()>=11){if(!map.hasLayer(stopsLayer))stopsLayer.addTo(map)}else if(map.hasLayer(stopsLayer))map.removeLayer(stopsLayer)}
+function updateStopZoom(){if(stopsVisible&&map.getZoom()>=10){if(!map.hasLayer(stopsLayer))stopsLayer.addTo(map)}else if(map.hasLayer(stopsLayer))map.removeLayer(stopsLayer)}
 map.on('zoomend',updateStopZoom);
 async function loadTransportLayers(){
  const query='[out:json][timeout:45];(node["highway"="bus_stop"]'+transportBounds+';node["public_transport"="platform"]'+transportBounds+';node["public_transport"="stop_position"]'+transportBounds+';);out body;relation["type"="route"]["route"~"^(bus|trolleybus|tram)$"]'+transportBounds+';out geom;';
